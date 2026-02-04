@@ -4,10 +4,14 @@ from sqlalchemy.orm import Session
 import backend.models as models, backend.schemas as schemas
 import backend.database as database
 from passlib.context import CryptContext
+from backend.hashing import Hash
+from backend import auth, oauth2
+
 
 get_db = database.get_db
 app = FastAPI()
 
+app.include_router(auth.router)
 
 @app.get('/books', response_model=schemas.APIResponse[List[schemas.ShowBook]],tags = ["Book"])
 def get_books(db: Session = Depends(get_db)):
@@ -60,7 +64,7 @@ def create_user(request: schemas.User, db: Session = Depends(get_db)):
         }
     
     user_data = request.model_dump() #standard form structure of converting into the dictionary in user_Data variable of JSON request object
-    user_data['password'] = pwd_context.hash(user_data['password']) #im doing this for hashing of password, need to access password key in users table as it comes in form of dictionary. 
+    user_data['password'] = Hash.bcrypt(user_data['password']) #im doing this for hashing of password, need to access password key in users table as it comes in form of dictionary. 
     new_user = models.User(**user_data)#now unpacking updated user_data dictionary so that i can store it safely in db
     db.add(new_user)
     db.commit()
@@ -104,7 +108,7 @@ def update_user(user_id : int, request: schemas.User, db: Session = Depends(get_
             "errors": {"UserID": ["User not in Database. Can't Update User."]}
         }
     update_userr = request.model_dump()
-    update_userr['password'] = pwd_context.hash(update_userr['password'])
+    update_userr['password'] = Hash.bcrypt(update_userr['password'])
     user_query.update(update_userr, synchronize_session = False)
     db.commit()
     db.refresh(user)
@@ -118,7 +122,7 @@ def update_user(user_id : int, request: schemas.User, db: Session = Depends(get_
     }
 
 @app.delete('/user/{id}', tags = ["User"])
-def delete_user(user_id : int, db:Session = Depends(get_db)):
+def delete_user(user_id : int, db:Session = Depends(get_db), current_user: str = Depends(oauth2.get_current_user)):
     user_query = db.query(models.User).filter(models.User.user_id == user_id)
     if not user_query.first():
         return{
@@ -136,4 +140,5 @@ def delete_user(user_id : int, db:Session = Depends(get_db)):
         "data" : None,
         "errors": None
     }
+ 
 
