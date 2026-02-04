@@ -3,6 +3,7 @@ from typing import List
 from sqlalchemy.orm import Session
 import backend.models as models, backend.schemas as schemas
 import backend.database as database
+from passlib.context import CryptContext
 
 get_db = database.get_db
 app = FastAPI()
@@ -41,5 +42,51 @@ def get_book_id(id: int, db: Session = Depends(get_db)):
         "success": True,
         "message": "Book Fetched Successfully",
         "data": books,
+        "errors": None
+    }
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated = "auto")
+
+@app.post('/user', response_model= schemas.APIResponse[schemas.ShowUser], tags = ["User"])
+def create_user(request = schemas.User, db: Session = Depends(get_db)):
+    existing_user = db.query(models.User).filter(models.User.email == request.email).first()
+    if existing_user:
+        return{
+            "success": False,
+            "message": "User not created, User exists already",
+            "data": None,
+            "errors": {"email:": ["Email already registered"]}
+        }
+    
+    user_data = request.model_dump() #standard form structure of converting into the dictionary in user_Data variable of JSON request object
+    user_data['password'] = pwd_context.hash(user_data['password']) #im doing this for hashing of password, need to access password key in users table as it comes in form of dictionary. 
+    new_user = models.User(**user_data)#now unpacking updated user_data dictionary so that i can store it safely in db
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    
+    return{
+        "success" : True,
+        "message" : "User created successfully",
+        "data" : new_user,
+        "errors" : None
+    }
+
+@app.get('/user/{id}', response_model = schemas.APIResponse[schemas.showUser], tags = ["User"])
+def get_user(user_id: int, db: Session = Depends(get_db)):
+
+    user = db.query(models.User).filter(models.User.user_id == user_id).first()
+    if not user:
+        return{
+            "success": False,
+            "message": f"User with {user_id} not found",
+            "data": None,
+            "errors": {"UserID": ["User not in Database."]}
+        }
+
+    return {
+        "success": True,
+        "message": "User fetched successfully",
+        "data": user,
         "errors": None
     }

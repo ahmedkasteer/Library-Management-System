@@ -30,3 +30,5 @@ class ShowBook(Book):
     available: bool
     class Config():
        from_attributes = True
+
+

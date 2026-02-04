@@ -11,3 +11,12 @@ class Book(Base):
     publication_year = Column(Integer)
     page_count = Column(Integer)
     available = Column(Boolean)
+
+class User(Base):
+    __tablename__ = "userTable"
+    user_id = Column(Integer, primary_key= True, index= True)
+    first_name = Column(String)
+    last_name = Column(String)
+    email = Column(String)
+    password = Column(String)
+    gender = Column(String)
