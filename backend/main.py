@@ -1,11 +1,10 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from typing import List
 from sqlalchemy.orm import Session
-import backend.models as models, backend.schemas as schemas
-import backend.database as database
+import models, schemas, database
 from passlib.context import CryptContext
-from backend.hashing import Hash
-from backend import auth, oauth2
+from hashing import Hash
+import auth, oauth2
 
 
 get_db = database.get_db
