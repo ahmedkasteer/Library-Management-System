@@ -8,6 +8,8 @@ class APIResponse(BaseModel, Generic[T]):
     message: str
     data: Optional[T] = None
     errors: Optional[Any] = None
+    class Config():
+        from_attributes = True
 
 class Book(BaseModel):
     book_id: int
@@ -31,4 +33,18 @@ class ShowBook(Book):
     class Config():
        from_attributes = True
 
+class User(BaseModel):
+    first_name : str
+    last_name : str
+    email: str
+    password: str
+    gender: str
 
+class ShowUser(BaseModel):
+    user_id: int
+    first_name : str
+    last_name : str
+    email: str
+    gender: str
+    class Config():
+        from_attributes = True

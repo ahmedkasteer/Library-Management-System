@@ -47,14 +47,15 @@ def get_book_id(id: int, db: Session = Depends(get_db)):
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated = "auto")
 
-@app.post('/user', response_model= schemas.APIResponse[schemas.ShowUser], tags = ["User"])
-def create_user(request = schemas.User, db: Session = Depends(get_db)):
+@app.post('/user', response_model= schemas.APIResponse[schemas.User], tags = ["User"])
+def create_user(request: schemas.User, db: Session = Depends(get_db)):
     existing_user = db.query(models.User).filter(models.User.email == request.email).first()
+    
     if existing_user:
         return{
             "success": False,
             "message": "User not created, User exists already",
-            "data": None,
+            "data": existing_user,
             "errors": {"email:": ["Email already registered"]}
         }
     
@@ -72,7 +73,7 @@ def create_user(request = schemas.User, db: Session = Depends(get_db)):
         "errors" : None
     }
 
-@app.get('/user/{id}', response_model = schemas.APIResponse[schemas.showUser], tags = ["User"])
+@app.get('/user/{id}', response_model = schemas.APIResponse[schemas.ShowUser], tags = ["User"])
 def get_user(user_id: int, db: Session = Depends(get_db)):
 
     user = db.query(models.User).filter(models.User.user_id == user_id).first()
@@ -90,3 +91,49 @@ def get_user(user_id: int, db: Session = Depends(get_db)):
         "data": user,
         "errors": None
     }
+
+@app.put('/user/{id}', response_model = schemas.APIResponse[schemas.ShowUser], tags = ["User"])
+def update_user(user_id : int, request: schemas.User, db: Session = Depends(get_db)):
+    user_query = db.query(models.User).filter(models.User.user_id == user_id)
+    user = user_query.first()
+    if not user:
+        return{
+            "success": False,
+            "message": f"User with {user_id} not found",
+            "data": None,
+            "errors": {"UserID": ["User not in Database. Can't Update User."]}
+        }
+    update_userr = request.model_dump()
+    update_userr['password'] = pwd_context.hash(update_userr['password'])
+    user_query.update(update_userr, synchronize_session = False)
+    db.commit()
+    db.refresh(user)
+
+    return{
+        "success" : True,
+        "message" : "User updated successfully",
+        "data" : user,
+        "errors": None
+
+    }
+
+@app.delete('/user/{id}', tags = ["User"])
+def delete_user(user_id : int, db:Session = Depends(get_db)):
+    user_query = db.query(models.User).filter(models.User.user_id == user_id)
+    if not user_query.first():
+        return{
+            "success": False,
+            "message": f"User with {user_id} not found",
+            "data": None,
+            "errors": {"UserID": ["User not in Database. Can't Delete User."]}
+        }
+    
+    user_query.delete(synchronize_session = False)
+    db.commit()
+    return {
+        "success" : True,
+        "message" : f"User with ID {user_id} Deleted successfully",
+        "data" : None,
+        "errors": None
+    }
+

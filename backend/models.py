@@ -13,7 +13,7 @@ class Book(Base):
     available = Column(Boolean)
 
 class User(Base):
-    __tablename__ = "userTable"
+    __tablename__ = "usertable"
     user_id = Column(Integer, primary_key= True, index= True)
     first_name = Column(String)
     last_name = Column(String)
